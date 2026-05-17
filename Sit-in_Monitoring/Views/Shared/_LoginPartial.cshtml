@@ -7,23 +7,28 @@
 {
     <ul class="navbar-nav position-absolute start-50 translate-middle-x d-flex flex-row gap-1">
         <li class="nav-item">
+            <a class="nav-link" asp-controller="Student" asp-action="Dashboard">
+                Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" asp-controller="Student" asp-action="Notifications">
+                Notifications
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" asp-controller="Student" asp-action="History">
                 Sit-In History
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link" asp-controller="Student" asp-action="Reservation">
-               Reservation
+                Reservation
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link" asp-controller="Student" asp-action="Rewards">
                 Rewards / Points
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" asp-controller="Student" asp-action="Notifications">
-               Notifications
             </a>
         </li>
     </ul>

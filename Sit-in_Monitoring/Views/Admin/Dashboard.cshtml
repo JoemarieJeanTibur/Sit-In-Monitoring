@@ -100,15 +100,7 @@
 
 <div class="content-wrapper">
 
-    <div class="dashboard-header">
-        <div>
-            <h2>Welcome, Admin</h2>
-            <p>College of Computer Studies Sit-in Monitoring System</p>
-        </div>
-        <div style="font-size:0.9rem;opacity:0.85;">
-            @DateTime.Now.ToString("MMMM dd, yyyy")
-        </div>
-    </div>
+   
 
     <!-- HOME -->
     <div id="home" class="section active">
@@ -234,36 +226,52 @@
         </div>
     </div>
 
-    <!-- SIT-IN REGISTRATION -->
-    <div id="sitin" class="section">
-        <div class="admin-card">
-            <div class="admin-card-header">Sit-in Registration</div>
-            <div class="admin-card-body">
-                <form method="post" asp-controller="Admin" asp-action="RegisterSitin">
-                    @Html.AntiForgeryToken()
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                        <div>
-                            <label class="form-label">ID Number</label>
-                            <input type="text" name="IdNumber" class="form-input" placeholder="Enter student ID" required />
-                        </div>
-                        <div>
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="Name" class="form-input" placeholder="Enter student name" required />
-                        </div>
-                        <div>
-                            <label class="form-label">Purpose</label>
-                            <input type="text" name="Purpose" class="form-input" placeholder="e.g. C#, Java, PHP" required />
-                        </div>
-                        <div>
-                            <label class="form-label">Lab</label>
-                            <input type="text" name="Lab" class="form-input" placeholder="e.g. Lab 1, Lab 2" required />
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-sitin" style="padding:10px 30px;font-size:0.95rem;">Register Sit-in</button>
-                </form>
+   <!-- SIT-IN REGISTRATION -->
+<div id="sitin" class="section">
+    <div class="admin-card">
+        <div class="admin-card-header">Sit-in Registration</div>
+        <div class="admin-card-body">
+            <div id="sitinAlert" style="display:none;margin-bottom:14px;"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div>
+                    <label class="form-label">ID Number</label>
+                    <input type="text" id="reg_idnumber" class="form-input" placeholder="Enter student ID" required />
+                </div>
+                <div>
+                    <label class="form-label">Purpose</label>
+                    <input type="text" id="reg_purpose" class="form-input" placeholder="e.g. C#, Java, PHP" required />
+                </div>
+                <div>
+                    <label class="form-label">Lab</label>
+                    <input type="text" id="reg_lab" class="form-input" placeholder="e.g. Lab 524" required />
+                </div>
             </div>
+            <button class="btn-sitin" style="padding:10px 30px;font-size:0.95rem;" onclick="registerSitin()">
+                Register Sit-in
+            </button>
         </div>
     </div>
+</div>
+
+<!-- SIT-IN REPORTS (CURRENT) -->
+<div id="sitinreports" class="section">
+    <div class="admin-card">
+        <div class="admin-card-header">Current Sit-in</div>
+        <div class="admin-card-body">
+            <table class="admin-table" id="currentSitinTable">
+                <thead>
+                    <tr>
+                        <th>ID Number</th><th>Name</th><th>Lab</th>
+                        <th>Purpose</th><th>Time In</th><th>Status</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="currentSitinBody">
+                    <tr><td colspan="7" style="text-align:center;color:#aaa;">No active sit-ins</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
     <!-- SIT-IN REPORTS (CURRENT) -->
     <div id="sitinreports" class="section">
@@ -435,5 +443,52 @@
     document.getElementById('searchInput')?.addEventListener('keydown', e => {
         if (e.key === 'Enter') searchStudent();
     });
+
+    function loadAdminReservations() {
+    fetch('/Admin/GetReservations')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.querySelector('#adminReservationsTable tbody');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;">No reservations yet</td></tr>';
+                return;
+            }
+            const badgeClass = s => ({
+                Pending: 'reservation-badge-pending',
+                Approved: 'reservation-badge-approved',
+                Rejected: 'reservation-badge-rejected'
+            }[s] || '');
+
+            tbody.innerHTML = data.map(r => `
+                <tr>
+                    <td>${r.idNumber}</td>
+                    <td>${r.name}</td>
+                    <td>${r.lab}</td>
+                    <td>${r.date}</td>
+                    <td>${r.time}</td>
+                    <td>${r.purpose}</td>
+                    <td><span class="${badgeClass(r.status)}">${r.status}</span></td>
+                    <td>
+                        ${r.status === 'Pending' ? `
+                            <button class="btn-sitin" onclick="updateReservation(${r.id}, 'Approved')">Approve</button>
+                            <button class="btn-end" onclick="updateReservation(${r.id}, 'Rejected')">Reject</button>
+                        ` : '—'}
+                    </td>
+                </tr>
+            `).join('');
+        });
+}
+
+function updateReservation(id, status) {
+    fetch('/Admin/UpdateReservationStatus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `id=${id}&status=${status}`
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) loadAdminReservations(); });
+}
+
+loadAdminReservations();
 </script>
 }
