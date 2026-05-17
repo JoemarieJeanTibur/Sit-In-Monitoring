@@ -7,6 +7,7 @@ namespace Sit_in_Monitoring.Data
     public class AppDbContext : IdentityDbContext<User>
     {
         public DbSet<SitIn> SitIns { get; set; }
+        public DbSet<Reservation> Reservations { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
