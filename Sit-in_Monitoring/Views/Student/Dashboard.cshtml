@@ -1,0 +1,220 @@
+﻿@model Sit_in_Monitoring.Models.User
+
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+}
+
+<div class="dashboard-wrapper">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-panel">
+        <div class="sidebar-header">Student Information</div>
+
+        <div class="sidebar-avatar">
+            @if (Model.ProfilePicture != null && Model.ProfilePicture.Length > 0)
+            {
+                <img src="data:image/jpeg;base64,@System.Convert.ToBase64String(Model.ProfilePicture)" alt="Profile Picture" class="avatar-circle" id="profileImg" />
+            }
+            else
+            {
+                <div class="avatar-circle">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+            }
+            <button type="button" class="btn-edit-profile" data-bs-toggle="modal" data-bs-target="#uploadPictureModal">Edit Profile</button>
+        </div>
+
+        <div class="sidebar-info">
+            <div class="info-row">
+                <span class="info-label">Name:</span>
+                <span class="info-value">@Model.FirstName @Model.LastName</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">ID:</span>
+                <span class="info-value">@Model.IDNumber</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Course:</span>
+                <span class="info-value">@Model.Course</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Year:</span>
+                <span class="info-value">@Model.YearLevel</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">@Model.Email</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Address:</span>
+                <span class="info-value">@Model.Address</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Session:</span>
+                <span class="info-value" id="sessionsRemaining">@Model.SessionsRemaining</span>
+            </div>
+        </div>
+
+        <form asp-controller="Home" asp-action="Logout" method="post" class="mt-auto">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT -->
+    <div class="main-content">
+
+        <!-- Stats Row -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-box-icon"><i class="bi bi-journal-text"></i></div>
+                <div>
+                    <div class="stat-box-num">@Model.SessionsUsed</div>
+                    <div class="stat-box-label">Sessions Used</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-icon yellow"><i class="bi bi-calendar-check"></i></div>
+                <div>
+                    <div class="stat-box-num">0</div>
+                    <div class="stat-box-label">Reservations</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-icon gold"><i class="bi bi-trophy"></i></div>
+                <div>
+                    <div class="stat-box-num">—</div>
+                    <div class="stat-box-label">Points</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-icon violet"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="stat-box-num" id="sessionsLeftStat">@Model.SessionsRemaining</div>
+                    <div class="stat-box-label">Sessions Left</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcements -->
+        <div class="content-card mt-3">
+            <div class="content-card-header">Announcements</div>
+            <div class="content-card-body empty-state">
+                <i class="bi bi-megaphone"></i>
+                <span>No announcements available.</span>
+            </div>
+        </div>
+
+        <!-- Lab Rules -->
+        <div class="content-card mt-3">
+            <div class="content-card-header">Lab Rules &amp; Regulations</div>
+            <div class="content-card-body rules-body">
+                <h3>UNIVERSITY OF CEBU – MAIN CAMPUS</h3>
+                <h4>LABORATORY RULES AND REGULATIONS</h4>
+                <p class="rules-intro">To avoid embarrassment and maintain camaraderie inside the computer laboratory, the following rules and regulations are to be strictly observed:</p>
+                <p>1. Maintain silence, proper decorum, and discipline inside the laboratory.</p>
+                <p>2. Games are strictly prohibited inside the lab.</p>
+                <p>3. Surfing the internet is allowed only with the permission of the instructor.</p>
+                <p>4. Eating and drinking are not allowed inside the lab.</p>
+                <p>5. Observe cleanliness and orderliness at all times.</p>
+                <p>6. Absence of laboratory gown is not allowed.</p>
+                <p>7. Students are required to log in and log out upon entering and leaving the laboratory.</p>
+                <p>8. Students must bring their own laboratory materials.</p>
+                <p>9. No vandalism of any kind is allowed.</p>
+                <p>10. Students are held responsible for any damage to the equipment.</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Upload Profile Picture Modal -->
+<div class="modal fade" id="uploadPictureModal" tabindex="-1" aria-labelledby="uploadPictureLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadPictureLabel">
+                    <i class="bi bi-image"></i> Upload Profile Picture
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alertContainer"></div>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="profilePictureInput" class="form-label">Choose Image File</label>
+                        <input class="form-control" type="file" id="profilePictureInput" name="profilePicture" accept="image/*" required />
+                        <small class="text-muted">Allowed formats: JPG, JPEG, PNG, GIF (Max 5MB)</small>
+                    </div>
+                    <div id="previewContainer" class="mb-3" style="display: none;">
+                        <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 300px;" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="uploadBtn">
+                    <i class="bi bi-cloud-upload"></i> Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('profilePictureInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    document.getElementById('previewImage').src = event.target.result;
+                    document.getElementById('previewContainer').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('uploadBtn').addEventListener('click', function () {
+            const fileInput = document.getElementById('profilePictureInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showAlert('Please select a file', 'warning');
+                return;
+            }
+
+            const formData = new FormData(document.getElementById('uploadForm'));
+
+            fetch('@Url.Action("UploadProfilePicture", "Student")', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred while uploading the image.', 'danger');
+            });
+        });
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+        }
+    </script>
+}

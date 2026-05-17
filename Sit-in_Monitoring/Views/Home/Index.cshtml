@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "Home";
+    Layout = "_Layout";
+}
+
+<!-- HERO -->
+<section class="landing-hero">
+    <div class="badge-pill">UC CCS Laboratory System</div>
+    <h1>Track Every <span>Sit-in</span><br />Session with Ease</h1>
+    <p>A streamlined monitoring system for the University of Cebu College of Computer Studies laboratory.</p>
+    <div class="hero-cta">
+        <a asp-action="Login" class="btn-yellow">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </a>
+        <a asp-action="Register" class="btn-outline-white">
+            <i class="bi bi-person-plus me-1"></i> Create Account
+        </a>
+    </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-row">
+    <div class="stat-item">
+        <div class="stat-num">500+</div>
+        <div class="stat-label">Active Students</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">12</div>
+        <div class="stat-label">Lab Rooms</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">24/7</div>
+        <div class="stat-label">Monitored</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">Secure</div>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="section-label">What you get</div>
+            <h2 class="section-title">Everything You Need</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">🧑‍🎓</div>
+                    <h5>Student Profiles</h5>
+                    <p>View and manage your complete student information including course, year level, and contact details.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h5>Session History</h5>
+                    <p>Keep track of all your previous sit-in sessions, total hours logged, and lab usage records.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">📜</div>
+                    <h5>Lab Rules & Guidelines</h5>
+                    <p>Quickly access laboratory rules and policies to ensure a smooth and compliant session every time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
