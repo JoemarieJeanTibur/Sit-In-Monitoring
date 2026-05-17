@@ -1,0 +1,172 @@
+﻿@model Sit_in_Monitoring.Models.User
+
+@{
+    ViewData["Title"] = "Reservation";
+    Layout = "_Layout";
+}
+
+<div class="dashboard-wrapper">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-panel">
+        <div class="sidebar-header">Student Information</div>
+
+        <div class="sidebar-avatar">
+            @if (Model.ProfilePicture != null && Model.ProfilePicture.Length > 0)
+            {
+                <img src="data:image/jpeg;base64,@System.Convert.ToBase64String(Model.ProfilePicture)" alt="Profile Picture" class="avatar-circle" id="profileImg" />
+            }
+            else
+            {
+                <div class="avatar-circle">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+            }
+        </div>
+
+        <div class="sidebar-info">
+            <div class="info-row">
+                <span class="info-label">Name:</span>
+                <span class="info-value">@Model.FirstName @Model.LastName</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">ID:</span>
+                <span class="info-value">@Model.IDNumber</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Course:</span>
+                <span class="info-value">@Model.Course</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Year:</span>
+                <span class="info-value">@Model.YearLevel</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Session:</span>
+                <span class="info-value">@Model.SessionsRemaining</span>
+            </div>
+        </div>
+
+        <form asp-controller="Home" asp-action="Logout" method="post" class="mt-auto">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        <div class="content-card mt-3">
+            <div class="content-card-header">New Reservation</div>
+            <div class="content-card-body">
+                <div id="reservationAlert"></div>
+                <form id="reservationForm">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Laboratory</label>
+                        <select class="form-select" name="lab" required>
+                            <option value="">-- Select Lab --</option>
+                            <option>Lab 524</option>
+                            <option>Lab 526</option>
+                            <option>Lab 528</option>
+                            <option>Lab 530</option>
+                             <option>Lab 542</option>
+                            <option>Lab 544</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Date</label>
+                        <input type="date" class="form-control" name="date" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Time</label>
+                        <input type="time" class="form-control" name="time" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Purpose</label>
+                        <textarea class="form-control" name="purpose" rows="3" required></textarea>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="submitReservationBtn">
+                        <i class="bi bi-send"></i> Submit Reservation
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="content-card mt-3">
+            <div class="content-card-header">My Reservations</div>
+            <div class="content-card-body p-0">
+                <table class="table table-sm mb-0" id="myReservationsTable">
+                    <thead>
+                        <tr>
+                            <th>Lab</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Purpose</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" class="text-center text-muted py-3">No reservations yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function loadMyReservations() {
+            fetch('@Url.Action("GetMyReservations", "Student")')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    const tbody = document.querySelector('#myReservationsTable tbody');
+                    if (data.reservations.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No reservations yet.</td></tr>';
+                        return;
+                    }
+                    const statusBadge = s => ({
+                        Pending: '<span class="badge bg-warning text-dark">Pending</span>',
+                        Approved: '<span class="badge bg-success">Approved</span>',
+                        Rejected: '<span class="badge bg-danger">Rejected</span>'
+                    }[s] || s);
+
+                    tbody.innerHTML = data.reservations.map(r => `
+                        <tr>
+                            <td>${r.lab}</td>
+                            <td>${r.date}</td>
+                            <td>${r.time}</td>
+                            <td>${r.purpose}</td>
+                            <td>${statusBadge(r.status)}</td>
+                        </tr>
+                    `).join('');
+                });
+        }
+
+        loadMyReservations();
+
+        document.getElementById('submitReservationBtn').addEventListener('click', function () {
+            const form = document.getElementById('reservationForm');
+            const data = new FormData(form);
+
+            fetch('@Url.Action("CreateReservation", "Student")', {
+                method: 'POST',
+                body: data
+            })
+            .then(r => r.json())
+            .then(data => {
+                const alert = document.getElementById('reservationAlert');
+                if (data.success) {
+                    alert.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    form.reset();
+                    loadMyReservations();
+                } else {
+                    alert.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            });
+        });
+    </script>
+}

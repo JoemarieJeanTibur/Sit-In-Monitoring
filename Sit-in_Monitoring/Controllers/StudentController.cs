@@ -161,5 +161,60 @@ namespace Sit_in_Monitoring.Controllers
             // Return a default placeholder image
             return Content("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3C/svg%3E", "image/svg+xml");
         }
+
+        public async Task<IActionResult> Reservation()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            return View(user);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateReservation(string lab, DateTime date, TimeSpan time, string purpose)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Json(new { success = false, message = "User not found." });
+
+            var reservation = new Reservation
+            {
+                UserId = user.Id,
+                Lab = lab,
+                Date = date,
+                Time = time,
+                Purpose = purpose,
+                Status = "Pending"
+            };
+
+            _context.Reservations.Add(reservation);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Reservation submitted successfully!" });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMyReservations()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Json(new { success = false });
+
+            var reservations = await _context.Reservations
+                .Where(r => r.UserId == user.Id)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new {
+                    r.Id,
+                    r.Lab,
+                    date = r.Date.ToString("MMM dd, yyyy"),
+                    time = r.Time.ToString(@"hh\:mm"),
+                    r.Purpose,
+                    r.Status
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, reservations });
+        }
     }
+
+
 }

@@ -324,25 +324,25 @@
         </div>
     </div>
 
-    <!-- RESERVATION -->
-    <div id="reservation" class="section">
-        <div class="admin-card">
-            <div class="admin-card-header">Reservations</div>
-            <div class="admin-card-body">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID Number</th><th>Name</th><th>Lab</th><th>Date</th>
-                            <th>Time</th><th>Purpose</th><th>Status</th><th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td colspan="8" style="text-align:center;color:#aaa;">No reservations yet</td></tr>
-                    </tbody>
-                </table>
-            </div>
+  <!-- RESERVATION -->
+<div id="reservation" class="section">
+    <div class="admin-card">
+        <div class="admin-card-header">Reservations</div>
+        <div class="admin-card-body">
+            <table class="admin-table" id="adminReservationsTable">
+                <thead>
+                    <tr>
+                        <th>ID Number</th><th>Name</th><th>Lab</th><th>Date</th>
+                        <th>Time</th><th>Purpose</th><th>Status</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="8" style="text-align:center;color:#aaa;">Loading...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
     <!-- GENERATE REPORTS -->
     <div id="generate" class="section">
@@ -435,5 +435,52 @@
     document.getElementById('searchInput')?.addEventListener('keydown', e => {
         if (e.key === 'Enter') searchStudent();
     });
+
+    function loadAdminReservations() {
+    fetch('/Admin/GetReservations')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.querySelector('#adminReservationsTable tbody');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;">No reservations yet</td></tr>';
+                return;
+            }
+            const badgeClass = s => ({
+                Pending: 'reservation-badge-pending',
+                Approved: 'reservation-badge-approved',
+                Rejected: 'reservation-badge-rejected'
+            }[s] || '');
+
+            tbody.innerHTML = data.map(r => `
+                <tr>
+                    <td>${r.idNumber}</td>
+                    <td>${r.name}</td>
+                    <td>${r.lab}</td>
+                    <td>${r.date}</td>
+                    <td>${r.time}</td>
+                    <td>${r.purpose}</td>
+                    <td><span class="${badgeClass(r.status)}">${r.status}</span></td>
+                    <td>
+                        ${r.status === 'Pending' ? `
+                            <button class="btn-sitin" onclick="updateReservation(${r.id}, 'Approved')">Approve</button>
+                            <button class="btn-end" onclick="updateReservation(${r.id}, 'Rejected')">Reject</button>
+                        ` : '—'}
+                    </td>
+                </tr>
+            `).join('');
+        });
+}
+
+function updateReservation(id, status) {
+    fetch('/Admin/UpdateReservationStatus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `id=${id}&status=${status}`
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) loadAdminReservations(); });
+}
+
+loadAdminReservations();
 </script>
 }
