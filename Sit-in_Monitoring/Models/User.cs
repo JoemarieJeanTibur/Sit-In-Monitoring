@@ -20,6 +20,8 @@ namespace Sit_in_Monitoring.Models
         public DateTime? LastCheckOut { get; set; }
         public bool IsCurrentlyCheckedIn { get; set; } = false;
 
+        public int Points { get; set; } = 0;
+
         // Navigation property
         public ICollection<SitIn>? SitIns { get; set; }
 

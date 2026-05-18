@@ -9,5 +9,6 @@ namespace Sit_in_Monitoring.Models
         public DateTime? CheckOutTime { get; set; }
         public int DurationInMinutes { get; set; }
         public string? Notes { get; set; }
+        public string? Feedback { get; set; }
     }
 }

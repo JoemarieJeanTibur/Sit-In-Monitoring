@@ -96,17 +96,123 @@
     .dropdown-section a:hover { background: rgba(255,255,255,0.1); color: #fff; }
     .dropdown-wrapper { position: relative; }
     .dropdown-wrapper:hover .dropdown-section { display: block; }
+
+    /* Success Notification Styles */
+    .success-notification-overlay { 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        right: 0; 
+        bottom: 0; 
+        background: rgba(0,0,0,0.5); 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .success-notification-overlay.show { 
+        opacity: 1; 
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .success-notification-modal {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        transform: scale(0.8);
+        transition: transform 0.3s ease;
+    }
+    .success-notification-overlay.show .success-notification-modal { transform: scale(1); }
+
+    .success-notification-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #1a7a3a, #2db55e);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 40px;
+        color: white;
+    }
+
+    .success-notification-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a7a3a;
+        margin-bottom: 12px;
+    }
+
+    .success-notification-message {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+
+    .success-notification-details {
+        background: #f5f5f5;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 24px;
+        text-align: left;
+    }
+
+    .success-detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+
+    .success-detail-item:last-child { margin-bottom: 0; }
+
+    .success-detail-label { font-weight: 600; color: #3d2b7d; }
+    .success-detail-value { color: #555; }
+
 </style>
 
 <div class="content-wrapper">
 
-   
+    <!-- SUCCESS NOTIFICATION OVERLAY -->
+    <div id="successNotificationOverlay" class="success-notification-overlay">
+        <div class="success-notification-modal">
+            <div class="success-notification-icon">✓</div>
+            <div class="success-notification-title">Successfully Registered!</div>
+            <div class="success-notification-message">The student has been registered for sit-in.</div>
+            <div class="success-notification-details">
+                <div class="success-detail-item">
+                    <span class="success-detail-label">Student ID:</span>
+                    <span class="success-detail-value" id="successDetailId">—</span>
+                </div>
+                <div class="success-detail-item">
+                    <span class="success-detail-label">Purpose:</span>
+                    <span class="success-detail-value" id="successDetailPurpose">—</span>
+                </div>
+                <div class="success-detail-item">
+                    <span class="success-detail-label">Lab:</span>
+                    <span class="success-detail-value" id="successDetailLab">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 
     <!-- HOME -->
     <div id="home" class="section active">
         <div class="stats-grid">
             <div class="admin-card">
-                <div class="admin-card-header">📊 Statistics</div>
+                <div class="admin-card-header">Statistics</div>
                 <div class="admin-card-body">
                     <div class="stat-summary-item">
                         <span>Students Registered</span>
@@ -114,15 +220,15 @@
                     </div>
                     <div class="stat-summary-item">
                         <span>Currently Sit-in</span>
-                        <span>0</span>
+                        <span id="statCurrentSitin">0</span>
                     </div>
                     <div class="stat-summary-item">
                         <span>Total Sit-in Records</span>
-                        <span>0</span>
+                       <span id="statTotalSitin">0</span>
                     </div>
                     <div class="stat-summary-item">
                         <span>Total Feedback</span>
-                        <span>0</span>
+                        <span id="statTotalFeedback">0</span>
                     </div>
                     <div style="margin-top:20px;">
                         <canvas id="purposeChart" height="220"></canvas>
@@ -132,30 +238,33 @@
 
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <span>📢 Announcements</span>
+                    <span>Announcements</span>
                     <button class="btn-sitin" onclick="toggleAnnouncementForm()">+ New</button>
                 </div>
                 <div class="admin-card-body">
                     <div id="announcementForm" class="announcement-form-panel">
                         <h6>Create New Announcement</h6>
-                        <form method="post" asp-controller="Admin" asp-action="CreateAnnouncement">
-                            @Html.AntiForgeryToken()
-                            <div style="margin-bottom:12px;">
-                                <label class="form-label">Title</label>
-                                <input type="text" name="Title" class="form-input" placeholder="Announcement title" required />
-                            </div>
-                            <div style="margin-bottom:14px;">
-                                <label class="form-label">Content</label>
-                                <textarea name="Content" class="form-input" rows="3" placeholder="Write your announcement here..." required style="resize:vertical;"></textarea>
-                            </div>
-                            <div style="display:flex;gap:10px;">
-                                <button type="submit" class="btn-sitin" style="padding:9px 24px;font-size:0.88rem;">Post Announcement</button>
-                                <button type="button" class="btn-cancel" onclick="toggleAnnouncementForm()">Cancel</button>
-                            </div>
-                        </form>
+                        <form id="announcementForm_form" onsubmit="submitAnnouncement(event)">
+    @Html.AntiForgeryToken()
+    <div style="margin-bottom:12px;">
+        <label class="form-label">Title</label>
+        <input type="text" id="ann_title" name="Title" class="form-input" placeholder="Announcement title" required />
+    </div>
+    <div style="margin-bottom:14px;">
+        <label class="form-label">Content</label>
+        <textarea id="ann_content" name="Content" class="form-input" rows="3" placeholder="Write your announcement here..." required style="resize:vertical;"></textarea>
+    </div>
+    <div id="ann_feedback" style="font-size:0.85rem;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn-sitin" style="padding:9px 24px;font-size:0.88rem;">Post Announcement</button>
+        <button type="button" class="btn-cancel" onclick="toggleAnnouncementForm()">Cancel</button>
+    </div>
+</form>
                     </div>
-                    <div style="text-align:center;color:#aaa;padding:30px 0;font-size:0.9rem;">
-                        No announcements yet. Click <strong>+ New</strong> to create one.
+                    <div id="announcementsListContainer">
+                        <div style="text-align:center;color:#aaa;padding:30px 0;font-size:0.9rem;">
+                            Loading announcements...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -208,7 +317,7 @@
                                     <td>@s.FirstName @s.LastName</td>
                                     <td>@s.YearLevel</td>
                                     <td>@s.Course</td>
-                                    <td>30</td>
+                                    <td>@s.SessionsRemaining</td>
                                     <td>
                                         <a href="#" class="btn-edit-student">Edit</a>
                                         <a href="#" class="btn-delete-student" onclick="return confirm('Delete this student?')">Delete</a>
@@ -231,24 +340,49 @@
     <div class="admin-card">
         <div class="admin-card-header">Sit-in Registration</div>
         <div class="admin-card-body">
-            <div id="sitinAlert" style="display:none;margin-bottom:14px;"></div>
+            <div id="sitinAlert" style="display:none;margin-bottom:14px;padding:12px;border-radius:6px;"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
                 <div>
                     <label class="form-label">ID Number</label>
-                    <input type="text" id="reg_idnumber" class="form-input" placeholder="Enter student ID" required />
+                    <input type="text" id="reg_idnumber" class="form-input" placeholder="Enter student ID" required onchange="loadStudentName()" />
+                </div>
+                <div>
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="reg_fullname" class="form-input" placeholder="Full name" readonly style="background-color:#f5f5f5;" />
                 </div>
                 <div>
                     <label class="form-label">Purpose</label>
-                    <input type="text" id="reg_purpose" class="form-input" placeholder="e.g. C#, Java, PHP" required />
+                     <select id="reg_purpose" class="form-input" required>
+                        <option value="">Select a Purpose</option>
+                        <option value="Networking">Networking</option>
+                        <option value="Programming">Programming</option>
+                        <option value="Database">Database</option>
+                        <option value="Web Development">Web Development</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
                 <div>
                     <label class="form-label">Lab</label>
-                    <input type="text" id="reg_lab" class="form-input" placeholder="e.g. Lab 524" required />
+                    <select id="reg_lab" class="form-input" required>
+                        <option value="">Select a Lab</option>
+                        <option value="254">Lab 254</option>
+                        <option value="526">Lab 526</option>
+                        <option value="528">Lab 528</option>
+                        <option value="530">Lab 530</option>
+                        <option value="542">Lab 542</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Remaining Session</label>
+                    <input type="text" id="reg_RemainingSession" class="form-input" placeholder="Remaining session" readonly style="background-color:#f5f5f5;" />
                 </div>
             </div>
-            <button class="btn-sitin" style="padding:10px 30px;font-size:0.95rem;" onclick="registerSitin()">
-                Register Sit-in
-            </button>
+            <div style="display:flex;gap:10px;">
+                <button class="btn-sitin" style="padding:10px 30px;font-size:0.95rem;" onclick="registerSitin()">
+                    Register Sit-in
+                </button>
+                <button type="button" class="btn-cancel" style="background:#ddd;color:#333;" onclick="clearSitinForm()">Clear</button>
+            </div>
         </div>
     </div>
 </div>
@@ -273,45 +407,36 @@
     </div>
 </div>
 
-    <!-- SIT-IN REPORTS (CURRENT) -->
-    <div id="sitinreports" class="section">
-        <div class="admin-card">
-            <div class="admin-card-header">Current Sit-in</div>
-            <div class="admin-card-body">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID Number</th><th>Name</th><th>Lab</th>
-                            <th>Purpose</th><th>Time In</th><th>Status</th><th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td colspan="7" style="text-align:center;color:#aaa;">No active sit-ins</td></tr>
-                    </tbody>
-                </table>
-            </div>
+   <!-- SIT-IN RECORDS -->
+<div id="records" class="section">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <span>Sit-in Logs — All Records</span>
+            <input type="text" id="recordsSearch" placeholder="Search by ID or Name..." oninput="filterRecords()" style="padding:6px 12px;border-radius:6px;border:none;font-size:0.82rem;width:220px;color:#333;" />
+        </div>
+        <div class="admin-card-body" style="padding:0;">
+            <table class="admin-table" id="sitinLogsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ID Number</th>
+                        <th>Name</th>
+                        <th>Lab</th>
+                        <th>Purpose</th>
+                        <th>Time In</th>
+                        <th>Time Out</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Feedback</th>
+                    </tr>
+                </thead>
+                <tbody id="sitinLogsBody">
+                    <tr><td colspan="9" style="text-align:center;color:#aaa;padding:30px;">Loading records...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
-
-    <!-- SIT-IN RECORDS -->
-    <div id="records" class="section">
-        <div class="admin-card">
-            <div class="admin-card-header">Sit-in Records</div>
-            <div class="admin-card-body">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID Number</th><th>Name</th><th>Lab</th>
-                            <th>Purpose</th><th>Time In</th><th>Time Out</th><th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td colspan="7" style="text-align:center;color:#aaa;">No records yet</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+ </div>
 
     <!-- FEEDBACK REPORTS -->
     <div id="feedback" class="section">
@@ -324,7 +449,7 @@
                             <th>ID Number</th><th>Name</th><th>Feedback</th><th>Date Submitted</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="feedbackReportsBody">
                         <tr><td colspan="4" style="text-align:center;color:#aaa;">No feedback submitted yet</td></tr>
                     </tbody>
                 </table>
@@ -337,15 +462,15 @@
         <div class="admin-card">
             <div class="admin-card-header">Reservations</div>
             <div class="admin-card-body">
-                <table class="admin-table">
+                <table class="admin-table" id="adminReservationsTable">
                     <thead>
                         <tr>
-                            <th>ID Number</th><th>Name</th><th>Lab</th><th>Date</th>
+                            <th>ID Number</th><th>Name</th><th>Lab</th><th>PC No.</th><th>Date</th>
                             <th>Time</th><th>Purpose</th><th>Status</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="8" style="text-align:center;color:#aaa;">No reservations yet</td></tr>
+                        <tr><td colspan="9" style="text-align:center;color:#aaa;">Loading reservations...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -388,6 +513,338 @@
         </div>
     </div>
 
+
+<!-- LAB MANAGEMENT -->
+<div id="labmanagement" class="section">
+    <style>
+        .lm-wrap { padding: 10px 4px; }
+
+        .lm-header-bar {
+            background: linear-gradient(135deg, #3d2b7d, #6a4fc9);
+            border-radius: 14px;
+            padding: 26px 32px;
+            margin-bottom: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .lm-header-bar h2 { margin: 0; color: #fff; font-size: 1.5rem; font-weight: 800; }
+        .lm-header-bar p { margin: 5px 0 0; color: rgba(255,255,255,0.75); font-size: 0.85rem; }
+        .lm-header-icon {
+            width: 52px; height: 52px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .lm-lab-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .lm-lab-pill {
+            padding: 7px 20px;
+            border-radius: 30px;
+            border: 2px solid #d5cdf0;
+            background: #fff;
+            color: #3d2b7d;
+            font-weight: 700;
+            font-size: 0.83rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .lm-lab-pill:hover { border-color: #3d2b7d; background: #f5f2ff; }
+        .lm-lab-pill.lm-active { background: #3d2b7d; color: #fff; border-color: #3d2b7d; }
+
+        .lm-controls { display: flex; gap: 10px; margin-bottom: 22px; align-items: center; flex-wrap: wrap; }
+        .lm-btn-avail {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #3d2b7d;
+            color: #eeedfe;
+            font-weight: 500;
+            font-size: 0.83rem;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 7px;
+            transition: background 0.15s;
+        }
+        .lm-btn-avail:hover { background: #2e1f6b; }
+        .lm-btn-unavail {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1.5px solid #a32d2d;
+            background: #fff;
+            color: #a32d2d;
+            font-weight: 500;
+            font-size: 0.83rem;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 7px;
+            transition: all 0.15s;
+        }
+        .lm-btn-unavail:hover { background: #fcebeb; }
+        .lm-hint { font-size: 0.78rem; color: #bbb; display: flex; align-items: center; gap: 5px; }
+
+        .lm-counters { display: flex; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+        .lm-counter {
+            flex: 1;
+            min-width: 110px;
+            background: #f5f4fb;
+            border-radius: 8px;
+            padding: 16px 20px;
+        }
+        .lm-counter-label { font-size: 0.7rem; font-weight: 600; color: #aaa; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+        .lm-counter-num { font-size: 1.9rem; font-weight: 700; color: #3d2b7d; line-height: 1; }
+        .lm-counter-num.red { color: #a32d2d; }
+        .lm-counter-num.green { color: #2f7a3b; }
+
+        .lm-grid-card {
+            background: #fff;
+            border-radius: 14px;
+            border: 1.5px solid #ede8ff;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(61,43,125,0.07);
+        }
+        .lm-grid-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .lm-grid-top h5 { margin: 0; font-size: 1rem; font-weight: 800; color: #3d2b7d; }
+        .lm-legend { display: flex; gap: 16px; font-size: 0.8rem; color: #555; align-items: center; }
+
+        .lm-pc-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+        }
+        .lm-pc {
+            border: 2px solid #2f7a3b;
+            border-radius: 10px;
+            padding: 10px 4px 8px;
+            text-align: center;
+            cursor: pointer;
+            background: #f6fff8;
+            transition: all 0.13s;
+        }
+        .lm-pc:hover { border-color: #1d5c2a; background: #edfff1; transform: translateY(-1px); }
+        .lm-pc.lm-sel {
+            border-color: #3d2b7d;
+            background: #ede8ff;
+            box-shadow: 0 0 0 3px rgba(61,43,125,0.18);
+        }
+        .lm-pc.lm-unavail {
+            border-color: #e03131;
+            background: #fff5f5;
+        }
+        .lm-pc.lm-unavail .lm-pc-num { color: #a32d2d; }
+        .lm-pc.lm-unavail .lm-pc-lbl { color: #a32d2d; }
+        .lm-pc-num { font-size: 0.78rem; font-weight: 800; color: #2f7a3b; }
+        .lm-pc-lbl { font-size: 0.62rem; color: #999; margin-top: 3px; }
+    </style>
+
+    <div class="lm-wrap">
+
+        <div class="lm-header-bar">
+            <div>
+                <h2>Lab Management</h2>
+                <p>Monitor and manage PC availability across all laboratory rooms</p>
+            </div>
+            <div class="lm-header-icon">
+                <i class="bi bi-display"></i>
+            </div>
+        </div>
+
+        <div class="lm-lab-strip" id="lmLabStrip">
+            <button class="lm-lab-pill lm-active" onclick="lmSwitchLab('524', this)">Lab 524</button>
+            <button class="lm-lab-pill" onclick="lmSwitchLab('526', this)">Lab 526</button>
+            <button class="lm-lab-pill" onclick="lmSwitchLab('528', this)">Lab 528</button>
+            <button class="lm-lab-pill" onclick="lmSwitchLab('530', this)">Lab 530</button>
+            <button class="lm-lab-pill" onclick="lmSwitchLab('542', this)">Lab 542</button>
+            <button class="lm-lab-pill" onclick="lmSwitchLab('544', this)">Lab 544</button>
+        </div>
+
+        <div class="lm-controls">
+            <button class="lm-btn-avail" onclick="lmMark(true)">
+                <i class="bi bi-check-circle"></i> Mark available
+            </button>
+            <button class="lm-btn-unavail" onclick="lmMark(false)">
+                <i class="bi bi-x-circle"></i> Mark unavailable
+            </button>
+            <span class="lm-hint"><i class="bi bi-info-circle"></i> Select PCs first, or apply to all</span>
+        </div>
+
+        <div class="lm-counters">
+            <div class="lm-counter">
+                <div class="lm-counter-label">Total PCs</div>
+                <div class="lm-counter-num" id="lmTotal">50</div>
+            </div>
+            <div class="lm-counter">
+                <div class="lm-counter-label">Available</div>
+                <div class="lm-counter-num green" id="lmAvail">50</div>
+            </div>
+            <div class="lm-counter">
+                <div class="lm-counter-label">Unavailable</div>
+                <div class="lm-counter-num red" id="lmUnavail">0</div>
+            </div>
+        </div>
+
+        <div class="lm-grid-card">
+            <div class="lm-grid-top">
+                <h5 id="lmGridTitle">Lab 524 — PC Availability</h5>
+                <div class="lm-legend">
+                    <span style="display:flex;align-items:center;gap:6px;">
+                        <span style="width:14px;height:14px;border-radius:4px;border:2px solid #2f7a3b;background:#f6fff8;display:inline-block;"></span>Available
+                    </span>
+                    <span style="display:flex;align-items:center;gap:6px;">
+                        <span style="width:14px;height:14px;border-radius:4px;border:2px solid #e03131;background:#fff5f5;display:inline-block;"></span>Unavailable
+                    </span>
+                </div>
+            </div>
+            <div class="lm-pc-grid" id="lmPcGrid"></div>
+        </div>
+
+    </div>
+
+    <!-- Popup -->
+    <div id="lmPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:14px;padding:32px 36px;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+            <div id="lmPopupIconWrap" style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                <i id="lmPopupIcon" style="font-size:1.5rem;"></i>
+            </div>
+            <h5 id="lmPopupTitle" style="margin:0 0 8px;font-size:1rem;font-weight:800;color:#3d2b7d;"></h5>
+            <p id="lmPopupMsg" style="margin:0 0 24px;font-size:0.85rem;color:#888;"></p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button id="lmPopupConfirmBtn" onclick="lmPopupConfirm()" style="padding:9px 24px;border-radius:8px;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;color:#fff;"></button>
+                <button onclick="lmPopupClose()" style="padding:9px 24px;border-radius:8px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;font-size:0.85rem;cursor:pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var TOTAL = 50;
+        var labs = ['524','526','528','530','542','544'];
+        var state = {};
+        labs.forEach(function(l) { state[l] = Array(TOTAL).fill(true); });
+
+        var cur = '524';
+        var sel = new Set();
+        var pendingPcIdx = null;
+
+        function render() {
+            var grid = document.getElementById('lmPcGrid');
+            grid.innerHTML = '';
+            sel.clear();
+            state[cur].forEach(function(avail, i) {
+                var el = document.createElement('div');
+                el.className = 'lm-pc' + (avail ? '' : ' lm-unavail');
+                el.dataset.i = i;
+                el.innerHTML =
+                    '<div class="lm-pc-num">PC ' + (i + 1) + '</div>' +
+                    '<div class="lm-pc-lbl">' + (avail ? 'Available' : 'Unavailable') + '</div>';
+                el.onclick = function() {
+                    var isAvail = state[cur][i];
+                    pendingPcIdx = i;
+
+                    var iconWrap = document.getElementById('lmPopupIconWrap');
+                    var icon = document.getElementById('lmPopupIcon');
+                    var confirmBtn = document.getElementById('lmPopupConfirmBtn');
+
+                    if (isAvail) {
+                        iconWrap.style.background = '#fff5f5';
+                        iconWrap.style.border = '2px solid #e03131';
+                        icon.className = 'bi bi-x-circle';
+                        icon.style.color = '#a32d2d';
+                        confirmBtn.style.background = '#a32d2d';
+                        document.getElementById('lmPopupMsg').textContent = 'Mark PC ' + (i + 1) + ' as unavailable?';
+                    } else {
+                        iconWrap.style.background = '#f6fff8';
+                        iconWrap.style.border = '2px solid #2f7a3b';
+                        icon.className = 'bi bi-check-circle';
+                        icon.style.color = '#2f7a3b';
+                        confirmBtn.style.background = '#2f7a3b';
+                        document.getElementById('lmPopupMsg').textContent = 'Mark PC ' + (i + 1) + ' as available?';
+                    }
+
+                    document.getElementById('lmPopupTitle').textContent = 'PC ' + (i + 1) + ' — Lab ' + cur;
+                    document.getElementById('lmPopup').style.display = 'flex';
+                };
+                grid.appendChild(el);
+            });
+            updateCounters();
+        }
+
+        function updateCounters() {
+            var a = state[cur].filter(Boolean).length;
+            document.getElementById('lmTotal').textContent = TOTAL;
+            document.getElementById('lmAvail').textContent = a;
+            document.getElementById('lmUnavail').textContent = TOTAL - a;
+        }
+
+        window.lmPopupConfirm = function() {
+            if (pendingPcIdx !== null) {
+                state[cur][pendingPcIdx] = !state[cur][pendingPcIdx];
+                pendingPcIdx = null;
+            }
+            document.getElementById('lmPopup').style.display = 'none';
+            render();
+        };
+
+        window.lmPopupClose = function() {
+            pendingPcIdx = null;
+            document.getElementById('lmPopup').style.display = 'none';
+        };
+
+        window.lmSwitchLab = function(lab, btn) {
+            cur = lab;
+            document.querySelectorAll('.lm-lab-pill').forEach(function(b) {
+                b.classList.remove('lm-active');
+            });
+            btn.classList.add('lm-active');
+            document.getElementById('lmGridTitle').textContent = 'Lab ' + lab + ' — PC Availability';
+            render();
+        };
+
+        window.lmMark = function(avail) {
+            if (sel.size === 0) {
+                state[cur] = Array(TOTAL).fill(avail);
+            } else {
+                sel.forEach(function(i) { state[cur][i] = avail; });
+            }
+            render();
+        };
+
+        render();
+    })();
+    </script>
+</div>
+
+
+    <!-- LEADERBOARD -->
+    <div id="leaderboard" class="section">
+        <div class="admin-card">
+            <div class="admin-card-header">Leaderboard</div>
+            <div class="admin-card-body">
+                <table class="admin-table" id="leaderboardTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student</th>
+                            <th>ID Number</th>
+                            <th>Course</th>
+                            <th>Sessions</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <tr><td colspan="6" style="text-align:center;color:#aaa;">Loading leaderboard...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @section Scripts {
@@ -397,26 +854,104 @@
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
-
     function toggleAnnouncementForm() {
-        var form = document.getElementById('announcementForm');
-        form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+    var form = document.getElementById('announcementForm');
+    form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+}
+
+async function loadAdminAnnouncements() {
+    const container = document.getElementById('announcementsListContainer');
+    try {
+        const res = await fetch('/Admin/GetAnnouncements');
+        const data = await res.json();
+        if (data.success && data.announcements && data.announcements.length > 0) {
+         container.innerHTML = `
+            <div style="font-size:1.05rem;font-weight:800;color:#3d2b7d;padding:10px 0 14px 0;border-bottom:2px solid #3d2b7d;margin-bottom:4px;">
+                Posted Announcement
+            </div>` +
+        data.announcements.map(a => `
+            <div id="ann-item-${a.id}" style="padding:12px 0;border-bottom:1px solid #e0e0e0;">
+                <div style="font-size:0.8rem;font-weight:700;color:#444;margin-bottom:6px;">
+                    CCS Admin | ${a.createdAt}
+                    <button onclick="deleteAnnouncement(${a.id})" style="float:right;background:none;border:none;color:#c0392b;cursor:pointer;font-size:0.75rem;padding:0;font-weight:600;">🗑 Delete</button>
+                </div>
+                <div style="font-size:0.82rem;font-weight:700;color:#222;margin-bottom:3px;">${a.title}</div>
+                <div style="font-size:0.82rem;color:#555;line-height:1.5;">${a.content}</div>
+            </div>
+        `).join('');
+        } else {
+            container.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px 0;font-size:0.9rem;">No announcements yet.</div>';
+        }
+    } catch(e) {
+        container.innerHTML = '<div style="color:#c0392b;padding:10px;">Failed to load announcements.</div>';
     }
+}
+
+async function submitAnnouncement(e) {
+    e.preventDefault();
+    const title = document.getElementById('ann_title').value.trim();
+    const content = document.getElementById('ann_content').value.trim();
+    const token = document.querySelector('#announcementForm_form input[name="__RequestVerificationToken"]').value;
+    const feedback = document.getElementById('ann_feedback');
+    feedback.textContent = 'Posting...';
+    feedback.style.color = '#888';
+    try {
+        const res = await fetch('/Admin/CreateAnnouncement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `Title=${encodeURIComponent(title)}&Content=${encodeURIComponent(content)}&__RequestVerificationToken=${encodeURIComponent(token)}`
+        });
+        const data = await res.json();
+        if (data.success) {
+            feedback.textContent = '✅ ' + data.message;
+            feedback.style.color = '#1a7a3a';
+            document.getElementById('ann_title').value = '';
+            document.getElementById('ann_content').value = '';
+            setTimeout(() => {
+                document.getElementById('announcementForm').style.display = 'none';
+                feedback.textContent = '';
+                loadAdminAnnouncements();
+            }, 1000);
+        } else {
+            feedback.textContent = '❌ ' + data.message;
+            feedback.style.color = '#c0392b';
+        }
+    } catch(e) {
+        feedback.textContent = '❌ Error posting announcement.';
+        feedback.style.color = '#c0392b';
+    }
+}
+
+async function deleteAnnouncement(id) {
+    if (!confirm('Delete this announcement?')) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    try {
+        const res = await fetch('/Admin/DeleteAnnouncement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `id=${id}` + (token ? `&__RequestVerificationToken=${encodeURIComponent(token.value)}` : '')
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('ann-item-' + id)?.remove();
+            const container = document.getElementById('announcementsListContainer');
+            if (!container.querySelector('.announcement-item')) {
+                container.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px 0;font-size:0.9rem;">No announcements yet.</div>';
+            }
+        }
+    } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Dashboard loaded');
+    console.log('Total students available:', allStudents.length);
+    console.log('Sample students:', allStudents.slice(0, 3));
+    loadAdminAnnouncements();
+});
 
     function searchStudent() {
         var query = document.getElementById('searchInput').value.trim();
         if (!query) return;
-        var allStudents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-            students.Select(s => new {
-                idNumber = s.IDNumber,
-                firstName = s.FirstName,
-                lastName = s.LastName,
-                course = s.Course,
-                yearLevel = s.YearLevel,
-                email = s.Email,
-                address = s.Address
-            }).ToList()
-        ));
         var q = query.toLowerCase();
         var results = allStudents.filter(s =>
             s.idNumber.toLowerCase().includes(q) ||
@@ -435,7 +970,7 @@
                 <td>${s.yearLevel}</td>
                 <td>${s.email}</td>
                 <td>${s.address}</td>
-                <td>30</td>
+                <td>${s.sessionsRemaining}</td>
             </tr>
         `).join('');
     }
@@ -449,8 +984,8 @@
         .then(r => r.json())
         .then(data => {
             const tbody = document.querySelector('#adminReservationsTable tbody');
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#aaa;">No reservations yet</td></tr>';
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#aaa;">No reservations yet</td></tr>';
                 return;
             }
             const badgeClass = s => ({
@@ -463,7 +998,8 @@
                 <tr>
                     <td>${r.idNumber}</td>
                     <td>${r.name}</td>
-                    <td>${r.lab}</td>
+                    <td>Lab ${r.lab}</td>
+                    <td>${r.pcNumber}</td>
                     <td>${r.date}</td>
                     <td>${r.time}</td>
                     <td>${r.purpose}</td>
@@ -490,5 +1026,388 @@ function updateReservation(id, status) {
 }
 
 loadAdminReservations();
+
+    let allSitinLogs = [];
+
+async function loadSitinLogs() {
+    try {
+        const res = await fetch('/Admin/GetAllSitins');
+        const data = await res.json();
+        if (data.success) {
+            allSitinLogs = data.sitins;
+            renderSitinLogs(allSitinLogs);
+        }
+    } catch(e) {
+        document.getElementById('sitinLogsBody').innerHTML =
+            '<tr><td colspan="9" style="text-align:center;color:#c0392b;padding:20px;">Failed to load records.</td></tr>';
+    }
+}
+
+function renderSitinLogs(logs) {
+    const tbody = document.getElementById('sitinLogsBody');
+    if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#aaa;padding:30px;">No sit-in records yet.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = logs.map((s, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${s.idNumber}</td>
+            <td>${s.name}</td>
+            <td>${s.lab}</td>
+            <td>${s.purpose}</td>
+            <td>${s.timeIn}</td>
+            <td>${s.timeOut ?? '<span style="color:#e67e22;font-weight:600;">Active</span>'}</td>
+            <td>${s.duration != null ? s.duration + ' min' : '—'}</td>
+            <td>${s.timeOut ? '<span style="background:#d4edda;color:#155724;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">Done</span>' : '<span style="background:#fff3cd;color:#856404;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">Active</span>'}</td>
+            <td><div style="font-size:0.8rem;font-style:italic;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.feedback || ''}">${s.feedback || '—'}</div></td>
+        </tr>
+    `).join('');
+}
+
+function filterRecords() {
+    const q = document.getElementById('recordsSearch').value.toLowerCase();
+    const filtered = allSitinLogs.filter(s =>
+        s.idNumber.toLowerCase().includes(q) ||
+        s.name.toLowerCase().includes(q)
+    );
+    renderSitinLogs(filtered);
+}
+
+// Load records when section becomes visible
+const _origShowSection = showSection;
+showSection = function(id) {
+    _origShowSection(id);
+    if (id === 'records') loadSitinLogs();
+    if (id === 'sitinreports') loadCurrentSitins();
+    if (id === 'feedback') loadFeedbackReports();
+    if (id === 'leaderboard') loadAdminLeaderboard();
+};
+
+async function loadFeedbackReports() {
+    try {
+        const res = await fetch('/Admin/GetAllSitins');
+        const data = await res.json();
+        if (data.success) {
+            const feedbacks = data.sitins.filter(s => s.feedback);
+            renderFeedbackReports(feedbacks);
+        }
+    } catch(e) {
+        document.getElementById('feedbackReportsBody').innerHTML = 
+            '<tr><td colspan="4" style="text-align:center;color:#c0392b;padding:20px;">Failed to load feedback.</td></tr>';
+    }
+}
+
+function renderFeedbackReports(feedbacks) {
+    const tbody = document.getElementById('feedbackReportsBody');
+    if (!feedbacks.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:30px;">No feedback submitted yet</td></tr>';
+        return;
+    }
+    tbody.innerHTML = feedbacks.map(f => `
+        <tr>
+            <td>${f.idNumber}</td>
+            <td>${f.name}</td>
+            <td style="color:#5B21B6;font-weight:600;font-style:italic;">"${f.feedback}"</td>
+            <td>${f.timeOut || '—'}</td>
+        </tr>
+    `).join('');
+}
+
+// Student data for sit-in registration
+var allStudents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    students.Select(s => new {
+        idNumber = s.IDNumber,
+        firstName = s.FirstName,
+        lastName = s.LastName,
+        course = s.Course,
+        yearLevel = s.YearLevel,
+        email = s.Email,
+        address = s.Address,
+        sessionsRemaining = s.SessionsRemaining
+    }).ToList()
+));
+
+function loadStudentName() {
+    const idNumber = document.getElementById('reg_idnumber').value.trim();
+    const fullNameInput = document.getElementById('reg_fullname');
+    const sessionsInput = document.getElementById('reg_RemainingSession');
+
+    if (!idNumber) {
+        fullNameInput.value = '';
+        sessionsInput.value = '';
+        return;
+    }
+
+    const student = allStudents.find(s => s.idNumber === idNumber);
+    if (student) {
+        fullNameInput.value = student.firstName + ' ' + student.lastName;
+        sessionsInput.value = student.sessionsRemaining;
+    } else {
+        fullNameInput.value = '';
+        sessionsInput.value = '';
+    }
+}
+
+function clearSitinForm() {
+    document.getElementById('reg_idnumber').value = '';
+    document.getElementById('reg_fullname').value = '';
+    document.getElementById('reg_purpose').value = '';
+    document.getElementById('reg_lab').value = '';
+    document.getElementById('reg_RemainingSession').value = '';
+    document.getElementById('sitinAlert').style.display = 'none';
+}
+
+async function registerSitin() {
+    const idNumber = document.getElementById('reg_idnumber').value.trim();
+    const purpose = document.getElementById('reg_purpose').value.trim();
+    const lab = document.getElementById('reg_lab').value.trim();
+    const alertDiv = document.getElementById('sitinAlert');
+
+    // Validation
+    if (!idNumber || !purpose || !lab) {
+        showAlert('Please fill in all fields', 'error', alertDiv);
+        console.warn('Validation failed:', { idNumber, purpose, lab });
+        return;
+    }
+
+    console.log('Attempting to register sit-in:', { idNumber, purpose, lab });
+
+    try {
+        const response = await fetch('/Admin/RegisterSitin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `IdNumber=${encodeURIComponent(idNumber)}&Purpose=${encodeURIComponent(purpose)}&Lab=${encodeURIComponent(lab)}`
+        });
+
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (data.success) {
+            showAlert('✅ ' + data.message + ' (Sessions left: ' + data.sessionsRemaining + ')', 'success', alertDiv);
+            console.log('Registration successful');
+
+            // Update local student data
+            const studentIdx = allStudents.findIndex(s => s.idNumber === idNumber);
+            if (studentIdx !== -1) {
+                allStudents[studentIdx].sessionsRemaining = data.sessionsRemaining;
+            }
+
+            // Show success modal
+            showSuccessNotification(idNumber, purpose, lab);
+
+            clearSitinForm();
+            // Reload current sit-ins and switch view after a short delay
+            setTimeout(() => {
+                loadCurrentSitins();
+                showSection('sitinreports');
+                // Optional: refresh student list table if visible
+            }, 2000);
+        } else {
+            showAlert('❌ ' + data.message, 'error', alertDiv);
+            console.error('Registration failed:', data.message);
+        }
+    } catch (error) {
+        showAlert('❌ Error registering sit-in. Please try again.', 'error', alertDiv);
+        console.error('Error registering sit-in:', error);
+    }
+}
+
+function showAlert(message, type, element) {
+    element.textContent = message;
+    element.style.display = 'block';
+    if (type === 'success') {
+        element.style.background = '#d4edda';
+        element.style.color = '#155724';
+        element.style.border = '1px solid #c3e6cb';
+    } else {
+        element.style.background = '#f8d7da';
+        element.style.color = '#721c24';
+        element.style.border = '1px solid #f5c6cb';
+    }
+}
+
+function showSuccessNotification(idNumber, purpose, lab) {
+    console.log('Showing success notification for:', { idNumber, purpose, lab });
+
+    // Update notification details
+    document.getElementById('successDetailId').textContent = idNumber;
+    document.getElementById('successDetailPurpose').textContent = purpose;
+    document.getElementById('successDetailLab').textContent = 'Lab ' + lab;
+
+    // Show overlay
+    const overlay = document.getElementById('successNotificationOverlay');
+    overlay.classList.add('show');
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        overlay.classList.remove('show');
+    }, 3000);
+}
+
+async function loadCurrentSitins() {
+    try {
+        const res = await fetch('/Admin/GetCurrentSitins');
+        const data = await res.json();
+        console.log('Current sit-ins loaded:', data);
+
+        if (data.success) {
+            const tbody = document.getElementById('currentSitinBody');
+            if (!data.sitins || data.sitins.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#aaa;">No active sit-ins</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.sitins.map(s => `
+                <tr>
+                    <td>${s.idNumber}</td>
+                    <td>${s.name}</td>
+                    <td>Lab ${s.lab}</td>
+                    <td>${s.purpose}</td>
+                    <td>${s.timeIn}</td>
+                    <td><span style="background:#fff3cd;color:#856404;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;">Active</span></td>
+                    <td><button class="btn-end" style="padding:5px 10px;font-size:0.75rem;" onclick="endSitin(${s.id})">End Session</button></td>
+                </tr>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Error loading current sit-ins:', e);
+    }
+}
+
+async function endSitin(id) {
+    if (!confirm('End this sit-in session?')) return;
+
+    try {
+        const res = await fetch('/Admin/EndSitin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `id=${id}`
+        });
+
+        const data = await res.json();
+        console.log('End sit-in response:', data);
+
+        if (data.success) {
+            alert('✅ ' + data.message);
+            loadCurrentSitins();
+            loadSitinLogs();
+
+            // Show reward option modal
+            setTimeout(() => {
+                showRewardModal(data.sitinId);
+            }, 500);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    } catch (e) {
+        console.error('Error ending sit-in:', e);
+        alert('Error ending sit-in session.');
+    }
+}
+
+function showRewardModal(sitinId) {
+    const overlay = document.createElement('div');
+    overlay.id = 'rewardModalOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    `;
+
+    modal.innerHTML = `
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #F5C542, #FFD700); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px;">⭐</div>
+        <h3 style="margin: 0 0 8px; font-size: 1.3rem; font-weight: 700; color: #3d2b7d;">Award Point?</h3>
+        <p style="margin: 0 0 24px; font-size: 0.95rem; color: #666;">Would you like to give this student 1 reward point for their sit-in session?</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="grantReward(${sitinId})" style="padding: 10px 24px; border-radius: 8px; border: none; background: linear-gradient(135deg, #3d2b7d, #6a4fc9); color: white; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Give Point</button>
+            <button onclick="closeRewardModal()" style="padding: 10px 24px; border-radius: 8px; border: 1.5px solid #ccc; background: #f5f5f5; color: #333; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Skip</button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    overlay.onclick = function(e) {
+        if (e.target === overlay) closeRewardModal();
+    };
+}
+
+function closeRewardModal() {
+    const overlay = document.getElementById('rewardModalOverlay');
+    if (overlay) overlay.remove();
+}
+
+async function grantReward(sitinId) {
+    try {
+        const res = await fetch('/Admin/AddReward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `sitinId=${sitinId}`
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            closeRewardModal();
+            alert('✅ ' + data.message);
+            loadCurrentSitins();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    } catch (e) {
+        console.error('Error granting reward:', e);
+        alert('Error granting reward.');
+    }
+}
+
+async function loadAdminLeaderboard() {
+    try {
+        const res = await fetch('/Admin/GetLeaderboard');
+        const data = await res.json();
+
+        if (data.success && data.leaderboard && data.leaderboard.length > 0) {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = data.leaderboard.map((entry, index) => `
+                <tr>
+                    <td><strong>${entry.rank}</strong></td>
+                    <td>${entry.name}</td>
+                    <td>${entry.idNumber}</td>
+                    <td>${entry.course} - ${entry.yearLevel}</td>
+                    <td><strong>${entry.sessions}</strong></td>
+                    <td><span style="color: #F5C542; font-weight: 700; font-size: 1.1rem;">${entry.points} ⭐</span></td>
+                </tr>
+            `).join('');
+        } else {
+            document.getElementById('leaderboardBody').innerHTML = 
+                '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px;">No leaderboard data yet. Students need to complete sit-in sessions.</td></tr>';
+        }
+    } catch (e) {
+        console.error('Error loading leaderboard:', e);
+        document.getElementById('leaderboardBody').innerHTML = 
+            '<tr><td colspan="6" style="text-align:center;color:#c0392b;padding:20px;">Failed to load leaderboard.</td></tr>';
+    }
+}
+
+    
+
 </script>
 }

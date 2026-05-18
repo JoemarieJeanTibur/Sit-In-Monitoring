@@ -25,29 +25,35 @@
                 <div class="collapse navbar-collapse" id="adminNav">
 
                     <!-- Center nav links -->
-                    <ul class="navbar-nav position-absolute start-50 translate-middle-x d-flex flex-row gap-1">
+                    <ul class="navbar-nav mx-auto d-flex flex-row gap-1">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showSection('home')"><i class="bi bi-house me-1"></i>Home</a>
+                            <a class="nav-link" href="#" onclick="showSection('home')">Home</a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('leaderboard')">Leaderboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showSection('search')"><i class="bi bi-search me-1"></i>Search</a>
+                            <a class="nav-link" href="#" onclick="showSection('search')">Search</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showSection('students')"><i class="bi bi-people me-1"></i>Student List</a>
+                            <a class="nav-link" href="#" onclick="showSection('students')">Student List</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="showSection('sitin')"><i class="bi bi-pc-display me-1"></i>Sit-in</a>
+                            <a class="nav-link" href="#" onclick="showSection('sitin')">Sit-in</a>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-archive me-1"></i>Sit-in Records
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" onclick="showSection('records'); return false;">
+                                Sit-in Records
                             </a>
                             <ul class="dropdown-menu admin-dropdown">
+            
                                 <li><a class="dropdown-item" href="#" onclick="showSection('sitinreports')"><i class="bi bi-file-bar-graph me-2"></i>Sit-in Reports</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="showSection('feedback')"><i class="bi bi-chat-left-text me-2"></i>Feedback Reports</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="showSection('reservation')"><i class="bi bi-calendar-plus me-2"></i>Reservation</a></li>
                                 <li><hr class="dropdown-divider" /></li>
                                 <li><a class="dropdown-item" href="#" onclick="showSection('generate')"><i class="bi bi-printer me-2"></i>Generate Reports</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="showSection('labmanagement')"><i class="bi bi-tools me-2"></i>Lab Management</a></li>
                             </ul>
                         </li>
                     </ul>

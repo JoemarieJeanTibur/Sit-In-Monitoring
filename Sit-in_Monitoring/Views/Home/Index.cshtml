@@ -70,3 +70,75 @@
         </div>
     </div>
 </section>
+
+<!-- LEADERBOARD -->
+<section class="landing-leaderboard" style="background: linear-gradient(135deg, rgba(61, 43, 125, 0.1) 0%, rgba(106, 79, 201, 0.05) 100%); padding: 4rem 0;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="section-label">Recognition & Achievement</div>
+            <h2 class="section-title">Student Leaderboard</h2>
+            <p style="color: #888; font-size: 0.95rem; margin-top: 0.5rem;">Top performers based on sit-in hours and engagement points</p>
+        </div>
+        <div style="background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f9f7ff; border-bottom: 2px solid #ede8ff;">
+                        <th style="padding: 16px 24px; text-align: left; font-size: 0.85rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Rank</th>
+                        <th style="padding: 16px 24px; text-align: left; font-size: 0.85rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Student</th>
+                        <th style="padding: 16px 24px; text-align: center; font-size: 0.85rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Course</th>
+                        <th style="padding: 16px 24px; text-align: center; font-size: 0.85rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Sessions</th>
+                        <th style="padding: 16px 24px; text-align: center; font-size: 0.85rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Points</th>
+                    </tr>
+                </thead>
+                <tbody id="landingLeaderboardBody">
+                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                        <td colspan="5" style="padding: 40px 24px; text-align: center; color: #aaa; font-size: 0.95rem;">Loading leaderboard...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align: center; margin-top: 24px;">
+            <a asp-action="Leaderboard" asp-controller="Student" class="btn-yellow" style="display: inline-block; padding: 10px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                View Full Leaderboard →
+            </a>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        async function loadLandingLeaderboard() {
+            try {
+                const response = await fetch('/Student/GetLeaderboard');
+                const data = await response.json();
+                const tbody = document.getElementById('landingLeaderboardBody');
+
+                if (data.success && data.leaderboard && data.leaderboard.length > 0) {
+                    tbody.innerHTML = data.leaderboard.slice(0, 5).map((entry) => `
+                        <tr style="border-bottom: 1px solid #f0f0f0; transition: background 0.2s ease;">
+                            <td style="padding: 16px 24px; font-weight: 700; color: #3d2b7d; font-size: 1rem;">${entry.Rank}</td>
+                            <td style="padding: 16px 24px; font-size: 0.95rem;">
+                                <strong>${entry.FirstName} ${entry.LastName}</strong>
+                                <div style="font-size: 0.8rem; color: #aaa;">${entry.IDNumber}</div>
+                            </td>
+                            <td style="padding: 16px 24px; text-align: center; font-size: 0.9rem; color: #666;">${entry.Course} — ${entry.YearLevel}</td>
+                            <td style="padding: 16px 24px; text-align: center; font-weight: 600; color: #58A6FF; font-size: 0.95rem;">${entry.SessionsUsed}</td>
+                            <td style="padding: 16px 24px; text-align: center; font-weight: 700; color: #F5C542; font-size: 1.1rem;">${entry.Points} ⭐</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td colspan="5" style="padding: 40px 24px; text-align: center; color: #aaa; font-size: 0.95rem;">No leaderboard data yet. Leaderboard will appear as students start logging sit-in sessions.</td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                document.getElementById('landingLeaderboardBody').innerHTML = '<tr style="border-bottom: 1px solid #f0f0f0;"><td colspan="5" style="padding: 40px 24px; text-align: center; color: #aaa; font-size: 0.95rem;">Leaderboard temporarily unavailable.</td></tr>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadLandingLeaderboard);
+    </script>
+}

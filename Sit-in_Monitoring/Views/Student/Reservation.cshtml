@@ -19,7 +19,7 @@
                     @Html.AntiForgeryToken()
                     <div class="mb-3">
                         <label class="form-label fw-bold">Laboratory</label>
-                        <select class="form-select" name="lab" required>
+                        <select class="form-select" name="lab" id="labSelect" required onchange="loadAvailablePCs()">
                             <option value="">-- Select Lab --</option>
                             <option>Lab 524</option>
                             <option>Lab 526</option>
@@ -27,6 +27,12 @@
                             <option>Lab 530</option>
                              <option>Lab 542</option>
                             <option>Lab 544</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">PC Number</label>
+                        <select class="form-select" name="pcNumber" id="pcSelect" required>
+                            <option value="">-- Select PC --</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -55,6 +61,7 @@
                     <thead>
                         <tr>
                             <th>Lab</th>
+                            <th>PC</th>
                             <th>Date</th>
                             <th>Time</th>
                             <th>Purpose</th>
@@ -62,7 +69,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="5" class="text-center text-muted py-3">No reservations yet.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-3">No reservations yet.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -73,6 +80,36 @@
 
 @section Scripts {
     <script>
+        async function loadAvailablePCs() {
+            const lab = document.getElementById('labSelect').value;
+            const pcSelect = document.getElementById('pcSelect');
+            
+            pcSelect.innerHTML = '<option value="">-- Select PC --</option>';
+            
+            if (!lab) return;
+
+            try {
+                const res = await fetch(`@Url.Action("GetAvailablePCs", "Student")?lab=${encodeURIComponent(lab)}`);
+                const data = await res.json();
+                
+                if (data.success && data.pcs && data.pcs.length > 0) {
+                    data.pcs.forEach(pc => {
+                        const option = document.createElement('option');
+                        option.value = pc;
+                        option.textContent = `PC ${pc}`;
+                        pcSelect.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "No PCs available in this lab";
+                    pcSelect.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Error loading PCs:', error);
+            }
+        }
+
         function loadMyReservations() {
             fetch('@Url.Action("GetMyReservations", "Student")')
                 .then(r => r.json())
@@ -80,7 +117,7 @@
                     if (!data.success) return;
                     const tbody = document.querySelector('#myReservationsTable tbody');
                     if (data.reservations.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No reservations yet.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No reservations yet.</td></tr>';
                         return;
                     }
                     const statusBadge = s => ({
@@ -92,6 +129,7 @@
                     tbody.innerHTML = data.reservations.map(r => `
                         <tr>
                             <td>${r.lab}</td>
+                            <td>${r.pcNumber || '—'}</td>
                             <td>${r.date}</td>
                             <td>${r.time}</td>
                             <td>${r.purpose}</td>

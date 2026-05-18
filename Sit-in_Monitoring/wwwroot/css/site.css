@@ -1,6 +1,59 @@
 /* ===== FONTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
+/* ===== ACTIVE SITIN BANNER ===== */
+.active-sitin-banner {
+    background: linear-gradient(90deg, #5B21B6, #7C3AED);
+    color: white;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(91, 33, 182, 0.2);
+    animation: slideDown 0.5s ease-out;
+}
+
+.active-sitin-banner .banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.active-sitin-banner .banner-content i {
+    font-size: 1.25rem;
+    animation: pulse 2s infinite;
+}
+
+.btn-banner {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-banner:hover {
+    background: white;
+    color: #5B21B6;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
 :root {
     --violet: #5B21B6;
     --violet-dark: #3B0F8C;

@@ -5,17 +5,30 @@
 
 @if (SignInManager.IsSignedIn(User))
 {
-    <ul class="navbar-nav position-absolute start-50 translate-middle-x d-flex flex-row gap-1">
+    <ul class="navbar-nav position-absolute start-50 translate-middle-x d-flex flex-row gap-1 align-items-center">
         <li class="nav-item">
             <a class="nav-link" asp-controller="Student" asp-action="Dashboard">
                 Dashboard
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" asp-controller="Student" asp-action="Notifications">
-                Notifications
-            </a>
+
+        <!-- Notifications Bell Dropdown -->
+        <li class="nav-item notif-dropdown-wrapper" id="notifWrapper">
+            <button class="nav-link btn btn-link border-0 notif-bell-btn" id="notifBellBtn" onclick="toggleNotifDropdown(event)" title="Notifications">
+                 Notification
+                <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+            </button>
+            <div class="notif-dropdown" id="notifDropdown">
+                <div class="notif-dropdown-header">
+                    <span>Announcements</span>
+                    <button onclick="closeNotifDropdown()" class="notif-close-btn">✕</button>
+                </div>
+                <div class="notif-dropdown-body" id="notifDropdownBody">
+                    <div class="notif-loading">Loading...</div>
+                </div>
+            </div>
         </li>
+
         <li class="nav-item">
             <a class="nav-link" asp-controller="Student" asp-action="History">
                 Sit-In History
@@ -30,6 +43,10 @@
             <a class="nav-link" asp-controller="Student" asp-action="Rewards">
                 Rewards / Points
             </a>
+             <li class="nav-item">
+            <a class="nav-link" asp-controller="Student" asp-action="Leaderboards">
+                Leaderboards
+            </a>
         </li>
     </ul>
     <ul class="navbar-nav ms-auto">
@@ -42,6 +59,190 @@
             </form>
         </li>
     </ul>
+
+    <style>
+        .notif-dropdown-wrapper {
+            position: relative;
+        }
+        .notif-bell-btn {
+        position: relative;
+        padding: 4px 8px !important;
+        color: #fff ;
+        font-size: 1.1rem;
+    }
+    .notif-bell-btn:hover {
+        color: #d0c4f7 !important;
+    }
+        .notif-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.62rem;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .notif-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 340px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(61,43,125,0.18);
+            border: 1px solid #ede9f7;
+            z-index: 9999;
+            overflow: hidden;
+        }
+        .notif-dropdown.open {
+            display: block;
+            animation: notifFadeIn 0.18s ease;
+        }
+        @@keyframes notifFadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .notif-dropdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #3d2b7d;
+            color: #fff;
+            padding: 12px 16px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .notif-close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            opacity: 0.7;
+            line-height: 1;
+            padding: 0;
+        }
+        .notif-close-btn:hover { opacity: 1; }
+        .notif-dropdown-body {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+        .notif-loading {
+            text-align: center;
+            color: #aaa;
+            padding: 24px 0;
+            font-size: 0.88rem;
+        }
+        .notif-item {
+            padding: 13px 16px;
+            border-bottom: 1px solid #f0edf8;
+            transition: background 0.15s;
+        }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-item:hover { background: #f8f5ff; }
+        .notif-item-title {
+            font-weight: 700;
+            color: #3d2b7d;
+            font-size: 0.88rem;
+            margin-bottom: 3px;
+        }
+        .notif-item-content {
+            color: #555;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin-bottom: 5px;
+        }
+        .notif-item-time {
+            color: #bbb;
+            font-size: 0.75rem;
+        }
+        .notif-empty {
+            text-align: center;
+            color: #bbb;
+            padding: 30px 16px;
+            font-size: 0.88rem;
+        }
+        .notif-empty i { display: block; font-size: 2rem; margin-bottom: 8px; opacity: 0.4; }
+    </style>
+
+    <script>
+        let notifLoaded = false;
+
+        function toggleNotifDropdown(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('notifDropdown');
+            const isOpen = dropdown.classList.contains('open');
+            if (isOpen) {
+                dropdown.classList.remove('open');
+            } else {
+                dropdown.classList.add('open');
+                if (!notifLoaded) loadNotifAnnouncements();
+            }
+        }
+
+        function closeNotifDropdown() {
+            document.getElementById('notifDropdown').classList.remove('open');
+        }
+
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('notifWrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                closeNotifDropdown();
+            }
+        });
+
+        async function loadNotifAnnouncements() {
+            const body = document.getElementById('notifDropdownBody');
+            try {
+                const res = await fetch('/Student/GetAnnouncements');
+                const data = await res.json();
+                if (data.success && data.announcements && data.announcements.length > 0) {
+                    body.innerHTML = data.announcements.map(a => `
+                        <div class="notif-item">
+                            <div class="notif-item-title">${a.title}</div>
+                            <div class="notif-item-content">${a.content}</div>
+                            <div class="notif-item-time">📅 ${a.createdAt}</div>
+                        </div>
+                    `).join('');
+                    const badge = document.getElementById('notifBadge');
+                    badge.textContent = data.announcements.length > 9 ? '9+' : data.announcements.length;
+                    badge.style.display = 'flex';
+                    notifLoaded = true;
+                } else {
+                    body.innerHTML = '<div class="notif-empty"><i class="bi bi-bell-slash"></i>No announcements yet.</div>';
+                    notifLoaded = true;
+                }
+            } catch(e) {
+                body.innerHTML = '<div class="notif-empty">Failed to load.</div>';
+            }
+        }
+
+        // Load badge count silently on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const res = await fetch('/Student/GetAnnouncements');
+                const data = await res.json();
+                if (data.success && data.announcements && data.announcements.length > 0) {
+                    const badge = document.getElementById('notifBadge');
+                    if (badge) {
+                        badge.textContent = data.announcements.length > 9 ? '9+' : data.announcements.length;
+                        badge.style.display = 'flex';
+                    }
+                }
+            } catch(e) {}
+        });
+    </script>
 }
 else
 {

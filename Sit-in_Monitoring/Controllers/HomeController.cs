@@ -24,7 +24,7 @@ namespace Sit_in_Monitoring.Controllers
             if (_signInManager.IsSignedIn(User))
             {
                 var user = await _userManager.GetUserAsync(User);
-                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                if (user != null && await _userManager.IsInRoleAsync(user, "Admin"))
                     return RedirectToAction("Dashboard", "Admin");
                 return RedirectToAction("Dashboard", "Student");
             }
@@ -33,7 +33,7 @@ namespace Sit_in_Monitoring.Controllers
 
         [AllowAnonymous]
         [HttpGet]
-        public IActionResult Login(string returnUrl = null)
+        public IActionResult Login(string? returnUrl = null)
         {
             if (_signInManager.IsSignedIn(User))
                 return RedirectToAction("Index");
@@ -45,14 +45,14 @@ namespace Sit_in_Monitoring.Controllers
         [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             if (ModelState.IsValid)
             {
                 // Find user by IDNumber (Student ID)
                 var user = await _userManager.Users.FirstOrDefaultAsync(u => u.IDNumber == model.StudentID);
 
-                if (user != null)
+                if (user != null && user.UserName != null)
                 {
                     var result = await _signInManager.PasswordSignInAsync(
                         user.UserName, model.Password, model.RememberMe, lockoutOnFailure: false);
