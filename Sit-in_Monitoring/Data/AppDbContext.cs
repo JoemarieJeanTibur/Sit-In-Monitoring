@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Sit_in_Monitoring.Models;
 
@@ -26,7 +26,28 @@ namespace Sit_in_Monitoring.Data
                 .WithMany(u => u.SitIns)
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Reservation relationships
+            builder.Entity<Reservation>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure StudentNotification relationships
+            builder.Entity<StudentNotification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure LabPC if it has UserId foreign key
+            builder.Entity<LabPC>()
+                .HasKey(p => p.Id);
+
+            // Configure Announcement if it has UserId foreign key
+            builder.Entity<Announcement>()
+                .HasKey(a => a.Id);
         }
     }
 }
-
