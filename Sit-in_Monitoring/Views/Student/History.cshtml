@@ -1,0 +1,152 @@
+@model Sit_in_Monitoring.Models.User
+@{
+    ViewData["Title"] = "Sit-In History & Feedback";
+    Layout = "_Layout";
+}
+
+<style>
+    .history-card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+    .history-table { width: 100%; border-collapse: collapse; }
+    .history-table th { background: #f8f7ff; color: #3d2b7d; padding: 16px; text-align: left; font-weight: 700; border-bottom: 2px solid #eee; }
+    .history-table td { padding: 16px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; color: #444; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .status-active { background: #fff3cd; color: #856404; }
+    .status-done { background: #d4edda; color: #155724; }
+    .btn-feedback { background: #5B21B6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-feedback:hover { background: #4c1d95; transform: translateY(-1px); }
+    .feedback-text { font-style: italic; color: #666; font-size: 0.85rem; max-width: 250px; }
+</style>
+
+<div class="student-page" style="padding: 32px 48px;">
+    <div class="admin-page-header">
+        <div>
+            <div class="section-label">Sit-in Records</div>
+            <h1 class="section-title">History & Feedback</h1>
+        </div>
+    </div>
+
+    <div class="history-card mt-4">
+        <div class="content-card-header" style="background: #3d2b7d; color: white; padding: 15px 20px; font-weight: 600;">Your Sit-in Sessions</div>
+        <div class="admin-card-body" style="padding: 0;">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time In</th>
+                        <th>Time Out</th>
+                        <th>Duration</th>
+                        <th>Lab/Purpose</th>
+                        <th>Status</th>
+                        <th>Feedback</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding: 40px; color: #999;">
+                            <i class="bi bi-clock-history" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                            Loading your history...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Your Feedback</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modalSitinId" />
+                <div class="mb-3">
+                    <label class="form-label">How was your sit-in session?</label>
+                    <textarea id="feedbackInput" class="form-control" rows="4" placeholder="Type your feedback here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" style="background:#5B21B6;" onclick="submitFeedback()">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function loadHistory() {
+            const tbody = document.getElementById('historyBody');
+            try {
+                const res = await fetch('/Student/GetSitinHistory');
+                const data = await res.json();
+                
+                if (data.success && data.history && data.history.length > 0) {
+                    tbody.innerHTML = data.history.map(s => `
+                        <tr>
+                            <td>${s.checkInTime}</td>
+                            <td>${s.checkOutTime || '—'}</td>
+                            <td>${s.duration ? s.duration + ' min' : '—'}</td>
+                            <td style="font-size:0.85rem;">${s.notes || '—'}</td>
+                            <td>
+                                <span class="status-badge ${s.isActive ? 'status-active' : 'status-done'}">
+                                    ${s.isActive ? 'Active' : 'Completed'}
+                                </span>
+                            </td>
+                            <td>
+                                ${s.feedback 
+                                    ? `<div class="feedback-text">"${s.feedback}"</div>`
+                                    : (!s.isActive 
+                                        ? `<button class="btn-feedback" onclick="openFeedbackModal(${s.id})">Add Feedback</button>`
+                                        : '<span style="color:#aaa;font-size:0.8rem;">Session active</span>'
+                                      )
+                                }
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #999;">No sit-in records found.</td></tr>';
+                }
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #c0392b;">Failed to load history.</td></tr>';
+            }
+        }
+
+        function openFeedbackModal(id) {
+            document.getElementById('modalSitinId').value = id;
+            document.getElementById('feedbackInput').value = '';
+            new bootstrap.Modal(document.getElementById('feedbackModal')).show();
+        }
+
+        async function submitFeedback() {
+            const id = document.getElementById('modalSitinId').value;
+            const feedback = document.getElementById('feedbackInput').value.trim();
+            
+            if (!feedback) {
+                alert('Please enter your feedback.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/Student/SubmitFeedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `sitinId=${id}&feedback=${encodeURIComponent(feedback)}`
+                });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+                    loadHistory();
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('Error submitting feedback.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadHistory);
+    </script>
+}

@@ -1,11 +1,24 @@
-﻿@model Sit_in_Monitoring.Models.User
+@model Sit_in_Monitoring.Models.User
 
 @{
     ViewData["Title"] = "Dashboard";
     Layout = "_Layout";
 }
 
-<div class="dashboard-wrapper">
+@if (Model.IsCurrentlyCheckedIn)
+{
+    <div style="max-width:1200px;margin:1.5rem auto 0;padding:0 1rem;">
+        <div class="active-sitin-banner">
+            <div class="banner-content">
+                <i class="bi bi-broadcast"></i>
+                <span>Your account is currently active in a sit-in session.</span>
+            </div>
+            <a href="@Url.Action("History", "Student")" class="btn-banner">View Details</a>
+        </div>
+    </div>
+}
+
+<div class="dashboard-wrapper" style="@(Model.IsCurrentlyCheckedIn ? "margin-top:0;" : "")">
 
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar-panel">
@@ -14,7 +27,7 @@
         <div class="sidebar-avatar">
             @if (Model.ProfilePicture != null && Model.ProfilePicture.Length > 0)
             {
-                <img src="data:image/jpeg;base64,@System.Convert.ToBase64String(Model.ProfilePicture)" alt="Profile Picture" class="avatar-circle" id="profileImg" />
+                <img src="@Url.Action("GetProfilePicture", "Student", new { userId = Model.Id })" alt="Profile Picture" class="avatar-circle" id="profileImg" />
             }
             else
             {
@@ -22,7 +35,7 @@
                     <i class="bi bi-mortarboard-fill"></i>
                 </div>
             }
-            <button type="button" class="btn-edit-profile" data-bs-toggle="modal" data-bs-target="#uploadPictureModal">Edit Profile</button>
+            <button type="button" class="btn-edit-profile" onclick="openProfileModal()">Edit Profile</button>
         </div>
 
         <div class="sidebar-info">
@@ -84,25 +97,41 @@
             <div class="stat-box">
                 <div class="stat-box-icon gold"><i class="bi bi-trophy"></i></div>
                 <div>
-                    <div class="stat-box-num">—</div>
+                    <div class="stat-box-num">@Model.Points</div>
                     <div class="stat-box-label">Points</div>
                 </div>
             </div>
             <div class="stat-box">
-                <div class="stat-box-icon violet"><i class="bi bi-hourglass-split"></i></div>
+                <div class="stat-box-icon pink"><i class="bi bi-clock-history"></i></div>
                 <div>
-                    <div class="stat-box-num" id="sessionsLeftStat">@Model.SessionsRemaining</div>
+                    <div class="stat-box-num">@Model.SessionsRemaining</div>
                     <div class="stat-box-label">Sessions Left</div>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <!-- Announcements -->
+        <!-- Leaderboard Widget -->
         <div class="content-card mt-3">
-            <div class="content-card-header">Announcements</div>
-            <div class="content-card-body empty-state">
-                <i class="bi bi-megaphone"></i>
-                <span>No announcements available.</span>
+            <div class="content-card-header">
+                <i class="bi bi-trophy" style="color: #F5C542; margin-right: 8px;"></i>Top Students Leaderboard
+                <a href="@Url.Action("Leaderboard", "Student")" style="float: right; font-size: 0.85rem; color: #5B21B6; text-decoration: none; font-weight: 600;">View Full →</a>
+            </div>
+            <div class="content-card-body" style="padding: 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f5f2ff; border-bottom: 2px solid #e0d9f7;">
+                            <th style="padding: 12px 16px; text-align: left; font-size: 0.8rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">#</th>
+                            <th style="padding: 12px 16px; text-align: left; font-size: 0.8rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Student</th>
+                            <th style="padding: 12px 16px; text-align: center; font-size: 0.8rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Sessions</th>
+                            <th style="padding: 12px 16px; text-align: center; font-size: 0.8rem; font-weight: 700; color: #3d2b7d; text-transform: uppercase; letter-spacing: 0.05em;">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardLeaderboardBody">
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td colspan="4" style="padding: 20px; text-align: center; color: #aaa; font-size: 0.9rem;">Loading leaderboard...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -129,35 +158,71 @@
     </div>
 </div>
 
-<!-- Upload Profile Picture Modal -->
-<div class="modal fade" id="uploadPictureModal" tabindex="-1" aria-labelledby="uploadPictureLabel" aria-hidden="true">
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="uploadPictureLabel">
-                    <i class="bi bi-image"></i> Upload Profile Picture
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="border-radius:15px; overflow:hidden; border:none; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background:#5B21B6; color:white; border-bottom:none; padding:20px 25px;">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-gear me-2"></i>Edit Your Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div id="alertContainer"></div>
-                <form id="uploadForm" enctype="multipart/form-data">
+            <div class="modal-body" style="padding:25px;">
+                <form id="profileUpdateForm">
                     @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label for="profilePictureInput" class="form-label">Choose Image File</label>
-                        <input class="form-control" type="file" id="profilePictureInput" name="profilePicture" accept="image/*" required />
-                        <small class="text-muted">Allowed formats: JPG, JPEG, PNG, GIF (Max 5MB)</small>
+                    
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block">
+                            <img src="@Url.Action("GetProfilePicture", "Student", new { userId = Model.Id })"
+                                 id="modalPreview" alt="Profile"
+                                 style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:4px solid #f0f0f0; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+                            <label for="profilePicInput" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow"
+                                   style="width:34px; height:34px; cursor:pointer; background:#5B21B6 !important; border:2px solid white;">
+                                <i class="bi bi-camera-fill" style="font-size:0.95rem;"></i>
+                            </label>
+                            <input type="file" id="profilePicInput" accept="image/*" style="display:none;" onchange="previewImage(event)">
+                        </div>
+                        <p class="text-muted mt-2 mb-0" style="font-size:0.75rem;">Click camera icon to change photo</p>
                     </div>
-                    <div id="previewContainer" class="mb-3" style="display: none;">
-                        <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 300px;" />
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-uppercase" style="font-size:0.65rem; letter-spacing:0.05em; color:#888;">First Name</label>
+                            <input type="text" id="edit_firstName" class="form-control" value="@Model.FirstName" required style="border-radius:8px; padding:10px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-uppercase" style="font-size:0.65rem; letter-spacing:0.05em; color:#888;">Last Name</label>
+                            <input type="text" id="edit_lastName" class="form-control" value="@Model.LastName" required style="border-radius:8px; padding:10px;">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-uppercase" style="font-size:0.65rem; letter-spacing:0.05em; color:#888;">Home Address</label>
+                            <input type="text" id="edit_address" class="form-control" value="@Model.Address" required style="border-radius:8px; padding:10px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-uppercase" style="font-size:0.65rem; letter-spacing:0.05em; color:#888;">Course</label>
+                            <select id="edit_course" class="form-select" style="border-radius:8px; padding:10px;">
+                                <option value="BSIT" selected="@(Model.Course == "BSIT")">BSIT</option>
+                                <option value="BSCS" selected="@(Model.Course == "BSCS")">BSCS</option>
+                                <option value="BSIS" selected="@(Model.Course == "BSIS")">BSIS</option>
+                                <option value="ACT" selected="@(Model.Course == "ACT")">ACT</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-uppercase" style="font-size:0.65rem; letter-spacing:0.05em; color:#888;">Year Level</label>
+                            <select id="edit_yearLevel" class="form-select" style="border-radius:8px; padding:10px;">
+                                <option value="1st Year" selected="@(Model.YearLevel == "1st Year")">1st Year</option>
+                                <option value="2nd Year" selected="@(Model.YearLevel == "2nd Year")">2nd Year</option>
+                                <option value="3rd Year" selected="@(Model.YearLevel == "3rd Year")">3rd Year</option>
+                                <option value="4th Year" selected="@(Model.YearLevel == "4th Year")">4th Year</option>
+                            </select>
+                        </div>
                     </div>
+                    
+                    <div id="profileUpdateFeedback" class="mt-4 text-center small fw-bold"></div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="uploadBtn">
-                    <i class="bi bi-cloud-upload"></i> Upload
-                </button>
+            <div class="modal-footer" style="border-top:1px solid #f0f0f0; padding:15px 25px 25px;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius:8px; padding:10px 20px; font-weight:600; color:#666;">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()" style="background:#5B21B6; border:none; border-radius:8px; padding:10px 30px; font-weight:600; box-shadow:0 4px 12px rgba(91,33,182,0.3);">Save Changes</button>
             </div>
         </div>
         <!-- Reservations -->
@@ -234,109 +299,138 @@
 
 @section Scripts {
     <script>
-        document.getElementById('profilePictureInput').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    document.getElementById('previewImage').src = event.target.result;
-                    document.getElementById('previewContainer').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        document.getElementById('uploadBtn').addEventListener('click', function () {
-            const fileInput = document.getElementById('profilePictureInput');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                showAlert('Please select a file', 'warning');
-                return;
-            }
-
-            const formData = new FormData(document.getElementById('uploadForm'));
-
-            fetch('@Url.Action("UploadProfilePicture", "Student")', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => { location.reload(); }, 1500);
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('An error occurred while uploading the image.', 'danger');
-            });
-        });
-
-        function showAlert(message, type) {
-            const alertContainer = document.getElementById('alertContainer');
-            alertContainer.innerHTML = `
-                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
+        function openProfileModal() {
+            new bootstrap.Modal(document.getElementById('profileModal')).show();
         }
 
-                // Load reservations
-        function loadMyReservations() {
-            fetch('@Url.Action("GetMyReservations", "Student")')
-                .then(r => r.json())
-                .then(data => {
-                    if (!data.success) return;
-                    const tbody = document.querySelector('#myReservationsTable tbody');
-                    if (data.reservations.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No reservations yet.</td></tr>';
-                        return;
-                    }
-                    const statusBadge = s => ({
-                        Pending: '<span class="badge bg-warning text-dark">Pending</span>',
-                        Approved: '<span class="badge bg-success">Approved</span>',
-                        Rejected: '<span class="badge bg-danger">Rejected</span>'
-                    }[s] || s);
+        function previewImage(event) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                document.getElementById('modalPreview').src = reader.result;
+            }
+            if (event.target.files[0]) {
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        }
 
-                    tbody.innerHTML = data.reservations.map(r => `
-                        <tr>
-                            <td>${r.lab}</td>
-                            <td>${r.date}</td>
-                            <td>${r.time}</td>
-                            <td>${r.purpose}</td>
-                            <td>${statusBadge(r.status)}</td>
+        async function saveProfile() {
+            const btn = document.getElementById('saveProfileBtn');
+            const feedback = document.getElementById('profileUpdateFeedback');
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            feedback.textContent = '';
+
+            try {
+                const picInput = document.getElementById('profilePicInput');
+                if (picInput.files.length > 0) {
+                    const picData = new FormData();
+                    picData.append('profilePicture', picInput.files[0]);
+                    picData.append('__RequestVerificationToken', token);
+                    await fetch('/Student/UploadProfilePicture', { method: 'POST', body: picData });
+                }
+
+                const details = new URLSearchParams();
+                details.append('firstName', document.getElementById('edit_firstName').value);
+                details.append('lastName', document.getElementById('edit_lastName').value);
+                details.append('address', document.getElementById('edit_address').value);
+                details.append('course', document.getElementById('edit_course').value);
+                details.append('yearLevel', document.getElementById('edit_yearLevel').value);
+                details.append('__RequestVerificationToken', token);
+
+                const res = await fetch('/Student/UpdateProfile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: details
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    feedback.style.color = '#1a7a3a';
+                    feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i> Profile updated! Reloading...';
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    feedback.style.color = '#c0392b';
+                    feedback.textContent = '❌ ' + data.message;
+                    btn.disabled = false;
+                    btn.textContent = 'Save Changes';
+                }
+            } catch(e) {
+                console.error(e);
+                feedback.style.color = '#c0392b';
+                feedback.textContent = '❌ An error occurred. Please try again.';
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            }
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch('/Student/GetLatestAnnouncements?count=5');
+                const data = await response.json();
+                const container = document.getElementById('announcementsContainer');
+
+                if (data.success && data.announcements && data.announcements.length > 0) {
+                    container.innerHTML = data.announcements.map(announcement => `
+                        <div class="announcement-item" style="padding:15px 0; border-bottom:1px solid #f5f5f5;">
+                            <div style="display:flex; justify-content:space-between; align-items:start;">
+                                <div style="flex:1;">
+                                    <h6 style="margin:0 0 5px 0; color:#3d2b7d; font-weight:700; font-size:0.95rem;">${announcement.title}</h6>
+                                    <p style="margin:0 0 8px 0; color:#555; font-size:0.88rem; line-height:1.5;">${announcement.content}</p>
+                                    <small style="color:#aaa; font-size:0.75rem;"><i class="bi bi-clock me-1"></i> ${announcement.createdAt}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    container.lastElementChild.style.borderBottom = 'none';
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state" style="padding:40px 0; text-align:center; color:#aaa;">
+                            <i class="bi bi-megaphone" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
+                            <span>No announcements at this time.</span>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading announcements:', error);
+                document.getElementById('announcementsContainer').innerHTML = '<div class="text-danger p-3 text-center">Failed to load announcements.</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAnnouncements);
+
+        async function loadDashboardLeaderboard() {
+            try {
+                const response = await fetch('/Student/GetLeaderboard');
+                const data = await response.json();
+                const tbody = document.getElementById('dashboardLeaderboardBody');
+
+                if (data.success && data.leaderboard && data.leaderboard.length > 0) {
+                    tbody.innerHTML = data.leaderboard.slice(0, 5).map((entry, index) => `
+                        <tr style="border-bottom: 1px solid #f0f0f0; transition: background 0.2s ease;">
+                            <td style="padding: 12px 16px; font-weight: 700; color: #3d2b7d; font-size: 0.95rem;">${entry.Rank}</td>
+                            <td style="padding: 12px 16px; font-size: 0.9rem;">
+                                <strong>${entry.FirstName} ${entry.LastName}</strong>
+                                <div style="font-size: 0.75rem; color: #aaa;">${entry.IDNumber}</div>
+                            </td>
+                            <td style="padding: 12px 16px; text-align: center; font-weight: 600; color: #3d2b7d;">${entry.SessionsUsed}</td>
+                            <td style="padding: 12px 16px; text-align: center; font-weight: 700; color: #F5C542; font-size: 1rem;">${entry.Points} ⭐</td>
                         </tr>
                     `).join('');
-                });
-        }
-        loadMyReservations();
-
-        // Submit reservation
-        document.getElementById('submitReservationBtn').addEventListener('click', function () {
-            const form = document.getElementById('reservationForm');
-            const data = new FormData(form);
-
-            fetch('@Url.Action("CreateReservation", "Student")', {
-                method: 'POST',
-                body: data
-            })
-            .then(r => r.json())
-            .then(data => {
-                const alert = document.getElementById('reservationAlert');
-                if (data.success) {
-                    alert.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-                    form.reset();
-                    loadMyReservations();
-                    setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('reservationModal')).hide(), 1500);
                 } else {
-                    alert.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                    tbody.innerHTML = `
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td colspan="4" style="padding: 20px; text-align: center; color: #aaa; font-size: 0.9rem;">No leaderboard data yet.</td>
+                        </tr>
+                    `;
                 }
-            });
-        });
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                document.getElementById('dashboardLeaderboardBody').innerHTML = '<tr style="border-bottom: 1px solid #f0f0f0;"><td colspan="4" style="padding: 20px; text-align: center; color: #c0392b; font-size: 0.9rem;">Failed to load leaderboard.</td></tr>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboardLeaderboard);
     </script>
 }
